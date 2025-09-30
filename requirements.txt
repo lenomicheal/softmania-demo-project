@@ -1,0 +1,8 @@
+Flask
+Flask-SQLAlchemy
+Flask-Bcrypt
+Flask-Login
+Werkzeug
+mysql-connector-python
+gunicorn
+cryptography
