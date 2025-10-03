@@ -34,6 +34,8 @@
             border-radius: 5px;
             cursor: pointer;
         }
+
+        
     </style>
 </head>
 
@@ -42,55 +44,98 @@
         <h2>Dashboard</h2>
 
         <h3>Upload File</h3>
-        <form id="uploadForm" enctype="multipart/form-data">
-            <input type="file" id="file" name="file" accept=".pdf,.png,.jpeg,.jpg" required>
+
+        <form id="uploadForm">
+            <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf" required>
             <button type="submit">Upload</button>
+            <button type="button" onclick="clearList()">Clear All</button>
         </form>
 
-        <h3>Download File</h3>
-        <a href="/api/download/sample.pdf">Download Sample PDF</a>
-
         <h3>Uploaded Files</h3>
-        <ul id="fileList"></ul>
+        <div id="fileList"></div>
 
-        <button type="submit"><a href="/login">Logout</a></button>
+
+
+        <!-- <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" id="file" name="file" accept=".pdf,.png,.jpeg,.jpg" required>
+            <button type="submit">Upload</button>
+        </form> -->
+
+
+        <button type="submit"><a href="/frontend/login.html" style="color: #fff;">Logout</a></button>
     </div>
 
     <script>
-        document.getElementById('uploadForm').addEventListener('submit', async function (event) {
-            event.preventDefault();
+    // Load stored files on page load
+    window.onload = displayFiles;
 
-            const formData = new FormData(event.target);
+    // Handle form submit
+    document.getElementById("uploadForm").addEventListener("submit", function(e) {
+      e.preventDefault(); // prevent actual form submission
+      uploadFile();
+    });
 
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            });
+    function uploadFile() {
+      const fileInput = document.getElementById("fileInput");
+      const file = fileInput.files[0];
+      if (!file) return alert("Please select a file");
 
-            if (response.ok) {
-                alert('File uploaded successfully!');
-                fetchFiles();
-            } else {
-                alert('File upload failed!');
-            }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        // Get stored files or empty array
+        let files = JSON.parse(localStorage.getItem("files")) || [];
+        
+        // Store file data in Base64
+        files.push({
+          id: Date.now(),
+          name: file.name,
+          type: file.type,
+          data: e.target.result
         });
 
-        async function fetchFiles() {
-            const response = await fetch('/api/files');
-            const files = await response.json();
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '';
-            files.forEach(file => {
-                const li = document.createElement('li');
-                const a = document.createElement('a');
-                a.href = `/api/download/${file.filename}`;
-                a.textContent = file.filename;
-                li.appendChild(a);
-                fileList.appendChild(li);
-            });
+        localStorage.setItem("files", JSON.stringify(files));
+        displayFiles();
+        fileInput.value = ""; // reset file input
+      };
+
+      reader.readAsDataURL(file); // Convert file to Base64
+    }
+
+    function displayFiles() {
+      const fileList = document.getElementById("fileList");
+      fileList.innerHTML = "";
+      const files = JSON.parse(localStorage.getItem("files")) || [];
+
+      files.forEach(file => {
+        const div = document.createElement("div");
+        div.className = "file-item";
+
+        let filePreview = "";
+        if (file.type === "application/pdf") {
+          filePreview = `<iframe src="${file.data}" width="150" height="100"></iframe>`;
         }
 
-        fetchFiles();
+        div.innerHTML = `
+          <span class="file-name"  style="margin-right:10px">${file.name}</span>
+          ${filePreview}
+          <a href="${file.data}"  style="margin-right:10px" download="${file.name}">Download</a>
+          <button class="bin-btn" onclick="deleteFile(${file.id})">🗑️</button>
+        `;
+        fileList.appendChild(div);
+      });
+    }
+
+    function deleteFile(fileId) {
+      let files = JSON.parse(localStorage.getItem("files")) || [];
+      files = files.filter(f => f.id !== fileId);
+      localStorage.setItem("files", JSON.stringify(files));
+      displayFiles();
+    }
+
+    function clearList() {
+      localStorage.removeItem("files");
+      displayFiles();
+    }
     </script>
 </body>
 
